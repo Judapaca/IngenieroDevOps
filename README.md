@@ -53,7 +53,7 @@ forma segura.
 ```bash
 #!/bin/bash
 
-# Define el punto de montaje a monitorear y el umbral de uso
+# Se Define el punto de montaje a monitorear y el umbral de uso
 MONITOR_PATH="/"
 THRESHOLD=80
 
