@@ -177,6 +177,186 @@ c.  **Automatizar la ejecución diaria con Cron:** Configurar una entrada en el 
 
 d.  **Gestionar la retención en S3 (Lifecycle Policies):** Para no acumular backups indefinidamente en S3 y controlar los costos, configuraría políticas de ciclo de vida (Lifecycle Policies) en el bucket de S3. Estas políticas me permitirían especificar cuánto tiempo quiero conservar los backups, cuándo moverlos a un almacenamiento más económico como S3 Glacier, o cuándo eliminarlos por completo.
 
+#Para el laboratorio utilizamos como PLATAFORMA IAC TERRAFORM
+
+Sección 3: Infraestructura como Código (20 puntos) _EC2
+
+*Bloques data
+  aws_vpc.vpc_default: Obtiene la VPC por defecto de la región configurada.
+  aws_subnet.zd_1s: Obtiene la subred predeterminada de la zona de disponibilidad us-east-1a.
+  aws_security_group.default: Obtiene el Security Group por defecto.
+
+*Recursos creados
+  EC2 Instance (aws_instance.seccion3):
+  Se despliega una instancia t2.micro usando la AMI ami-01816d07b1128cd2d.
+  La instancia se asocia a la subred de us-east-1a y al Security Group personalizado sg_seccion3.
+  La instancia está etiquetada como Name = seccion3.
+
+
+*Security Group (aws_security_group.seccion3):
+  Se crea un grupo de seguridad que permite tráfico:
+  SSH (Puerto 22) desde 192.168.1.0/24.
+  HTTP (Puerto 80) desde cualquier origen 0.0.0.0/0.
+  HTTPS (Puerto 443) desde cualquier origen 0.0.0.0/0.
+
+*Subnet privada (aws_subnet.subred_privada):
+  Se crea una subred privada con el bloque CIDR 172.31.250.0/24 en us-east-1a.
+  Tabla de rutas (aws_route_table.mi_tabla_ruta_privada):
+  Se crea una tabla de rutas para la VPC por defecto.
+  Se asocia esta tabla de rutas con la subred privada creada.
+
+
+------Intruciones de Despliegue-----------------------
+Instrucciones de Despliegue para Infraestructura de Red
+Configurar tus credenciales de AWS (AWS CLI o variables de entorno).
+
+*Desde la carpeta terraform/, inicializa Terraform: 
+   terraform init
+
+*Despliegar toda la infraestructura
+
+   terraform apply
+
+Confirma los cambios escribiendo YES cuando Terraform lo solicite.
+
+*Al finalizar el despliegue:
+ Tu instancia EC2 estará disponible en la subred predeterminada us-east-1a.
+ La subred privada estará lista para futuros recursos.
+
+
+Sección 3: Infraestructura como Código (20 puntos) _S3
+
+Recursos creados:
+
+*Bucket S3 (aws_s3_bucket.bucket):
+  Se crea un bucket llamado mi-bucket-ejemplo-lambda-s3 que almacenará los archivos subidos.
+
+*Función Lambda (aws_lambda_function.lambda):
+  Función desplegada con el runtime de Python 3.9.
+  El código fuente debe estar empaquetado en un archivo .zip (lambda_function_payload.zip).
+  El handler definido es index.handler.
+
+*Rol IAM para Lambda (aws_iam_role.lambda_exec):
+  Rol que permite a la función Lambda asumir permisos básicos para ejecución.
+
+*Política IAM (aws_iam_role_policy.lambda_policy):
+  Otorga permisos para:
+  Acceso de lectura (GetObject, ListBucket) sobre el bucket S3.
+  Escritura de logs en CloudWatch Logs.
+
+*Permiso de invocación (aws_lambda_permission.allow_s3):
+  Permite que el bucket S3 invoque la función Lambda al detectar un evento.
+
+*Notificación de eventos en S3 (aws_s3_bucket_notification.bucket_notification):
+  Configura para que cuando se suba un objeto (s3:ObjectCreated:*), se dispare automáticamente la función Lambda.
+
+------Intruciones de Despliegue-----------------------
+
+Instrucciones de Despliegue para Integración S3 -> Lambda
+Configurar las credenciales de AWS (AWS CLI o variables de entorno).
+
+*Empaqueta código Lambda en un archivo .zip llamado lambda_function_payload.zip y se agrega en la raíz.
+ zip lambda_function_payload.zip index.py
+
+*Desde la carpeta terraform/, inicializa Terraform:
+ terraform init
+
+*Aplica los cambios:
+ terraform apply
+
+#Confirma los cambios escribiendo YES cuando Terraform lo solicite.
+
+*Resultado esperado:
+  Se creará un bucket S3.
+  Se desplegará una función Lambda.
+  Al subir un archivo al bucket, se disparará automáticamente la función Lambda.
+
+
+Sección 4: Escenarios Prácticos (40 puntos)
+
+*Serverless API en AWS
+
+  Esta solución implementa una arquitectura serverless utilizando AWS y Terraform:
+
+  API Gateway con endpoint expuesto /register
+  Lambda Function en Python/Node.js que almacena datos en DynamoDB
+  CloudWatch Logs habilitado y alarmas básicas por errores
+  Optimización de costos ajustando:
+
+  *Lambda Function - Registro en DynamoDB
+  
+  Esta Lambda recibe datos vía API Gateway y guarda registros en DynamoDB.
+
+  ##  Descripción
+
+  - Lenguaje: **Python 3.9**
+  - Frameworks/librerías usadas: **boto3** (cliente AWS SDK para Python)
+  - La función espera un evento de tipo **API Gateway proxy**.
+  - El payload debe contener al menos:
+  - `user_id`: Identificador único del usuario
+  - `name`: Nombre del usuario
+  - Si falta alguno de los campos requeridos, responde con **400 Bad Request**.
+  - Si el proceso es exitoso, inserta los datos en DynamoDB y devuelve **201 Created**.
+
+---
+
+  ## Estructura del Payload Esperado
+
+  ```json
+ {
+  "user_id": "12345",
+  "name": "Juan Perez"
+  }
+
+
+ *CI/CD mediante GitHub Actions para despliegues automáticos
+
+   Terraform instalado (versión 1.0+)
+   AWS CLI configurado correctamente (aws configure)
+   Cuenta de AWS activa
+   GitHub Actions configurado con permisos para desplegar en AWS
+
+------Intruciones de Despliegue-----------------------
+
+  # 1. Cambiar al directorio de Terraform
+  cd terraform/
+ 
+  # 2. Inicializar Terraform
+  terraform init
+
+  # 3. Aplicar la infraestructura
+  terraform apply
+
+  # 4. Confirmar escribiendo 'yes' cuando se solicite
+  Una vez completado, se mostrará en la salida la URL del API Gateway para consumir el endpoint /register.
+
+*Pipeline CI/CD - GitHub Actions
+
+  Trigger automático en push a la rama main
+  
+  Jobs configurados para:
+  Instalar Terraform
+  Inicializar Terraform
+  Planificar despliegue
+  Aplicar cambios automáticamente
+
+*Archivo importante:
+  .github/workflows/deploy.yml
+
+
+*Estrategias de Minimización de Costos
+
+  Función Lambda configurada con:
+  Memoria mínima necesaria (128MB por defecto)
+  Timeout de ejecución ajustado (5s por defecto)
+  Uso de DynamoDB en modo on-demand para evitar pagos por capacidad provisionada innecesaria.
+
+
+
+
+
+
+
 
 
 
