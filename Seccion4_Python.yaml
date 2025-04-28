@@ -1,0 +1,52 @@
+########################################
+##funcion Lambda  en Python /Node.js####
+########################################
+
+import json
+import boto3
+import os
+import logging
+
+# Configurar logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Cliente DynamoDB
+dynamodb = boto3.resource('dynamodb')
+table_name = os.environ['TABLE_NAME']  # El nombre de la tabla lo recibe como variable de entorno
+table = dynamodb.Table(table_name)
+
+def lambda_handler(event, context):
+    try:
+        logger.info(f"Evento recibido: {json.dumps(event)}")
+
+        body = json.loads(event.get('body', '{}'))
+
+        # Validar campos necesarios
+        if 'user_id' not in body or 'name' not in body:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'message': 'user_id y name son requeridos'})
+            }
+
+        item = {
+            'user_id': body['user_id'],
+            'name': body['name']
+        }
+
+        # Insertar en DynamoDB
+        table.put_item(Item=item)
+
+        logger.info(f"Item insertado: {item}")
+
+        return {
+            'statusCode': 201,
+            'body': json.dumps({'message': 'Registro exitoso'})
+        }
+
+    except Exception as e:
+        logger.error(f"Error al procesar el evento: {e}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'message': 'Error interno del servidor'})
+        }
