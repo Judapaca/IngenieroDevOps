@@ -298,24 +298,6 @@ Sección 4: Escenarios Prácticos (40 puntos)
   - Si falta alguno de los campos requeridos, responde con **400 Bad Request**.
   - Si el proceso es exitoso, inserta los datos en DynamoDB y devuelve **201 Created**.
 
----
-
-  ## Estructura del Payload Esperado
-
-  ```json
- {
-  "user_id": "12345",
-  "name": "Juan Perez"
-  }
-
-
- *CI/CD mediante GitHub Actions para despliegues automáticos
-
-   Terraform instalado (versión 1.0+)
-   AWS CLI configurado correctamente (aws configure)
-   Cuenta de AWS activa
-   GitHub Actions configurado con permisos para desplegar en AWS
-
 ------Intruciones de Despliegue-----------------------
 
   # 1. Cambiar al directorio de Terraform
